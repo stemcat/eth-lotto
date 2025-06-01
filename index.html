@@ -107,6 +107,9 @@
   </div>
   <div class="marquee"><span>🚀 Help make crypto history! Let's build the biggest lotto jackpot ever and beat the $2.1 billion record! 💰🔥</span></div>
   <div class="container">
+    <div class="current-jackpot" style="background:#ffeb3b; border:3px dashed #ff5722; padding:15px; margin-bottom:20px; font-size:1.5em; font-weight:bold; text-shadow:1px 1px #fff;">
+      💰 Current Jackpot: <span id="currentJackpot">Loading...</span> ETH 💰
+    </div>
     <h1>💎 ETH Lotto 💎</h1>
     <p>Enter the weekly jackpot draw by sending any amount of ETH!</p>
     <p>The more ETH you send, the better your odds of winning the pot!</p>
@@ -572,6 +575,8 @@ async function sendETH() {
 }
 
 async function updateDashboard() {
+  const totalPool = await contract.methods.totalPool().call();
+  document.getElementById("currentJackpot").innerText = web3.utils.fromWei(totalPool, "ether");
   const accounts = await web3.eth.getAccounts();
   const user = accounts[0];
   document.getElementById("userAddress").innerText = user;
