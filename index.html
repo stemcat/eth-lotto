@@ -123,17 +123,28 @@
       <h3>📜 How It Works:</h3>
       <ul>
         <li>Connect your MetaMask wallet.</li>
-        <li>Enter the amount of ETH you'd like to deposit above the minimum, then click "Send ETH".</li>
+        <li>Enter the amount of ETH you'd like to deposit (minimum 0.001 ETH), then click "Send ETH".</li>
         <li>Each ETH you deposit increases your odds of winning.</li>
         <li>At the end of each week, a winner is drawn based on contributions.</li>
         <li>The winner gets the entire jackpot!</li>
       </ul>
     </div>
 
-    <div class="current">
-      <h3>💰 Current Jackpot:</h3>
-      <p><strong id="currentJackpot">Loading...</strong></p>
-    </div>
+    $1
+
+<div style="margin-top: 20px;">
+  <button onclick="openShareModal()" style="background-color:#ff66cc; border: 2px solid #9900cc; color: white; font-size: 1.1em; padding: 10px 20px; border-radius: 8px; box-shadow: 2px 2px #333;">📢 Share</button>
+</div>
+
+<div id="shareModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:white; padding:30px; border:3px dashed #9900cc; max-width:400px; text-align:center;">
+    <h3>🚀 Share ETH Lotto!</h3>
+    <p>Spread the word and help us break the $2.1B jackpot record!</p>
+    <button onclick="shareOnTwitter()" style="margin:10px; padding:10px; font-size:1em;">🐦 Share on Twitter</button>
+    <button onclick="copyLink()" style="margin:10px; padding:10px; font-size:1em;">🔗 Copy Link</button><br>
+    <button onclick="closeShareModal()" style="margin-top:15px; font-size:0.9em;">❌ Close</button>
+  </div>
+</div>
 
     <div class="user-dashboard" id="dashboard">
       <h3>👤 Your Dashboard</h3>
@@ -152,13 +163,10 @@
     </div>
 
     <div class="winners">
-      <h3>🎉 Previous Winners:</h3>
-      <ul>
-        <li><strong>May 2025:</strong> <a href="https://sepolia.etherscan.io/address/0x1A2b...345" target="_blank">0x1A2b...345</a> - 11.2 ETH</li>
-        <li><strong>April 2025:</strong> <a href="https://sepolia.etherscan.io/address/0x9F8e...321" target="_blank">0x9F8e...321</a> - 14.7 ETH</li>
-        <li><strong>March 2025:</strong> <a href="https://sepolia.etherscan.io/address/0xABC...789" target="_blank">0xABC...789</a> - 23.5 ETH</li>
-        <li><strong>February 2025:</strong> <a href="https://sepolia.etherscan.io/address/0xD3f4...123" target="_blank">0xD3f4...123</a> - 9.3 ETH</li>
-      </ul>
+  <h3>🎉 Previous Winners:</h3>
+  <ul id="winnersList">
+    <li>Loading...</li>
+  </ul>
     </div>
   </div>
 
@@ -603,6 +611,49 @@ function updateCountdown() {
 }
 setInterval(updateCountdown, 1000);
 updateCountdown();
+async function loadPreviousWinners() {
+  try {
+    const events = await contract.getPastEvents("WinnerDrawn", {
+      fromBlock: 0,
+      toBlock: "latest"
+    });
+    const list = document.getElementById("winnersList");
+    list.innerHTML = "";
+    if (events.length === 0) {
+      list.innerHTML = "<li>No winners yet</li>";
+      return;
+    }
+    events.slice(-5).reverse().forEach(evt => {
+      const winner = evt.returnValues.winner;
+      const prize = web3.utils.fromWei(evt.returnValues.prize, "ether");
+      const item = document.createElement("li");
+      item.innerHTML = `<strong>Week:</strong> <a href='https://sepolia.etherscan.io/address/${winner}' target='_blank'>${winner.slice(0,6)}...${winner.slice(-4)}</a> - ${prize} ETH`;
+      list.appendChild(item);
+    });
+  } catch (e) {
+    console.error("Failed to fetch past winners", e);
+  }
+}
+
+loadPreviousWinners();
+function openShareModal() {
+  document.getElementById("shareModal").style.display = "flex";
+}
+
+function closeShareModal() {
+  document.getElementById("shareModal").style.display = "none";
+}
+
+function shareOnTwitter() {
+  const text = encodeURIComponent("🤑 I just entered the ETH Lotto! Help us break the $2.1B jackpot record! 💰🚀 #Crypto #ETHLotto");
+  const url = encodeURIComponent(window.location.href);
+  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank");
+}
+
+function copyLink() {
+  navigator.clipboard.writeText(window.location.href);
+  alert("Link copied to clipboard!");
+}
 </script>
 </body>
 </html>
