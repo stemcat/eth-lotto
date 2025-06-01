@@ -1,4 +1,193 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- (Full working version from canvas already injected, no need to duplicate here) -->
-</html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ETH Lotto</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js">    async function setupEventListeners() {
+      const accounts = await web3.eth.getAccounts();
+
+      contract.events.DepositMade({ fromBlock: 'latest' })
+        .on('data', event => {
+          const { user, amount } = event.returnValues;
+          playRetroSound();
+          showDepositEffect();
+          if (user.toLowerCase() === accounts[0].toLowerCase()) {
+            alert(`✅ You deposited ${web3.utils.fromWei(amount)} ETH!`);
+          }
+          loadJackpot();
+        })
+        .on('error', console.error);
+
+      contract.events.WinnerDrawn({ fromBlock: 'latest' })
+        .on('data', event => {
+          const { winner, prize } = event.returnValues;
+          playRetroSound();
+          alert(`🎉 Winner drawn: ${winner} - Prize: ${web3.utils.fromWei(prize)} ETH!`);
+          loadJackpot();
+        })
+        .on('error', console.error);
+
+      contract.events.WithdrawalMade({ fromBlock: 'latest' })
+        .on('data', event => {
+          const { user, amount } = event.returnValues;
+          if (user.toLowerCase() === accounts[0].toLowerCase()) {
+            alert(`💸 You withdrew ${web3.utils.fromWei(amount)} ETH!`);
+          }
+        })
+        .on('error', console.error);
+    }
+
+    window.addEventListener("load", async () => {
+      if (window.ethereum) {
+        web3 = new Web3(window.ethereum);
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        contract = new web3.eth.Contract(abi, contractAddress);
+        setupEventListeners();
+        loadJackpot();
+      }
+    });
+</script>
+  <script>
+    const contractAddress = "0x0E75b8B5690Ba71966E6B83861Cfd4C509F52955";
+    const abi = [
+      {"inputs":[{"internalType":"address","name":"_feeWallet","type":"address"},{"internalType":"uint256","name":"_feePercent","type":"uint256"}],"stateMutability":"nonpayable","type":"constructor"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"DepositMade","type":"event"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"winner","type":"address"},{"indexed":false,"internalType":"uint256","name":"prize","type":"uint256"}],"name":"WinnerDrawn","type":"event"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"WithdrawalMade","type":"event"},
+      {"inputs":[],"name":"canDraw","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"deposit","outputs":[],"stateMutability":"payable","type":"function"},
+      {"inputs":[],"name":"drawInterval","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"drawWinner","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[],"name":"feePercent","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"feeWallet","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"getParticipants","outputs":[{"internalType":"address[]","name":"","type":"address[]"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"minDeposit","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"roundStartTime","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"_newFee","type":"uint256"}],"name":"setFee","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"setMinDeposit","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"_seconds","type":"uint256"}],"name":"setDrawInterval","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"address","name":"_wallet","type":"address"}],"name":"setFeeWallet","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[],"name":"totalPool","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"withdrawIfWinner","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[],"name":"winner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"currentDeposits","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalDeposits","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+    ];
+  </script>
+  <style>
+    .container { max-width: 600px; margin: auto; }
+    .info-box { margin: 1rem 0; padding: 1rem; border: 2px solid #9900cc; border-radius: 10px; background: #fff0ff; }
+    #dashboard { display: none; margin-top: 2rem; }
+    #withdrawSection { display: none; margin-top: 2rem; }
+  </style>
+</head>
+<body style="font-family: Tahoma, sans-serif; text-align: center; background-color: #fefefe; padding: 2rem;">
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <h1 style="font-size: 2.5rem; color: #9900cc;">🚀 Welcome to ETH Lotto</h1>
+  <p>Connect your wallet to start playing. The more ETH you deposit, the higher your chance to win the weekly jackpot!</p>
+  <button onclick="window.location.href='terms.html'" style="margin: 1rem;">Terms & Conditions</button>
+  <button onclick="window.location.href='https://twitter.com/intent/tweet?text=Join the ETH Lotto! Win the weekly jackpot in crypto!&url=' + encodeURIComponent(window.location.href)" style="margin: 1rem;">📣 Share on Twitter</button>
+  <div class="container">
+  <h2>Current Jackpot: <span id="jackpot">Loading...</span> ETH</h2>
+  <p>Total Participants: <span id="participantCount">0</span></p>
+  <p>Next Draw In: <span id="countdown">--:--:--</span></p>
+
+  <div class="info-box">
+    <label for="ethAmount">Enter ETH amount to deposit:</label><br/>
+    <input type="number" id="ethAmount" step="0.001" placeholder="e.g. 0.01">
+    <button onclick="sendETH()">Send ETH</button>
+  </div>
+
+  <div id="dashboard" class="info-box">
+    <h3>Your Stats</h3>
+    <p>This round: <span id="yourDeposit">0</span> ETH</p>
+    <p>All-time total: <span id="yourTotal">0</span> ETH</p>
+    <p>Your chance: <span id="yourChance">0</span>%</p>
+  </div>
+
+  <div id="withdrawSection">
+    <button onclick="withdraw()">💸 Withdraw Winnings</button>
+  </div>
+</div>
+
+<script>
+  let contract;
+  let web3;
+
+  async function loadJackpot() {
+    const pool = await contract.methods.totalPool().call();
+    const participants = await contract.methods.getParticipants().call();
+    document.getElementById("jackpot").innerText = web3.utils.fromWei(pool);
+    document.getElementById("participantCount").innerText = participants.length;
+    loadUserStats();
+    loadCountdown();
+  }
+
+  async function sendETH() {
+    const accounts = await web3.eth.getAccounts();
+    const value = document.getElementById("ethAmount").value;
+    if (!value || parseFloat(value) <= 0) return alert("Enter a valid ETH amount");
+    const wei = web3.utils.toWei(value, "ether");
+    contract.methods.deposit().send({ from: accounts[0], value: wei });
+  }
+
+  async function withdraw() {
+    const accounts = await web3.eth.getAccounts();
+    contract.methods.withdrawIfWinner().send({ from: accounts[0] });
+  }
+
+  async function loadUserStats() {
+    const accounts = await web3.eth.getAccounts();
+    const addr = accounts[0];
+    const thisRound = await contract.methods.currentDeposits(addr).call();
+    const allTime = await contract.methods.totalDeposits(addr).call();
+    const total = await contract.methods.totalPool().call();
+    const chance = total > 0 ? ((thisRound / total) * 100).toFixed(2) : 0;
+
+    document.getElementById("dashboard").style.display = "block";
+    document.getElementById("yourDeposit").innerText = web3.utils.fromWei(thisRound);
+    document.getElementById("yourTotal").innerText = web3.utils.fromWei(allTime);
+    document.getElementById("yourChance").innerText = chance;
+
+    const winner = await contract.methods.winner().call();
+    document.getElementById("withdrawSection").style.display = (addr.toLowerCase() === winner.toLowerCase()) ? "block" : "none";
+  }
+
+  async function loadCountdown() {
+    const start = await contract.methods.roundStartTime().call();
+    const interval = await contract.methods.drawInterval().call();
+    const end = parseInt(start) + parseInt(interval);
+
+    function updateClock() {
+      const now = Math.floor(Date.now() / 1000);
+      let diff = end - now;
+      if (diff < 0) diff = 0;
+      const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+      const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+      const s = String(diff % 60).padStart(2, '0');
+      document.getElementById("countdown").innerText = `${h}:${m}:${s}`;
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+  }
+
+  function playRetroSound() {
+    const audio = new Audio("https://www.myinstants.com/media/sounds/coin.mp3");
+    audio.play();
+  }
+
+  function showDepositEffect() {
+    const sparkle = document.createElement("div");
+    sparkle.innerText = "✨";
+    sparkle.style.position = "absolute";
+    sparkle.style.top = Math.random() * window.innerHeight + "px";
+    sparkle.style.left = Math.random() * window.innerWidth + "px";
+    sparkle.style.fontSize = "2rem";
+    sparkle.style.animation = "fadeOut 2s ease forwards";
+    document.body.appendChild(sparkle);
+    setTimeout(() => sparkle.remove(), 2000);
+  }
+</script>
