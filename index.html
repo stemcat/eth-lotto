@@ -4,190 +4,605 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ETH Lotto</title>
-  <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js">    async function setupEventListeners() {
-      const accounts = await web3.eth.getAccounts();
-
-      contract.events.DepositMade({ fromBlock: 'latest' })
-        .on('data', event => {
-          const { user, amount } = event.returnValues;
-          playRetroSound();
-          showDepositEffect();
-          if (user.toLowerCase() === accounts[0].toLowerCase()) {
-            alert(`✅ You deposited ${web3.utils.fromWei(amount)} ETH!`);
-          }
-          loadJackpot();
-        })
-        .on('error', console.error);
-
-      contract.events.WinnerDrawn({ fromBlock: 'latest' })
-        .on('data', event => {
-          const { winner, prize } = event.returnValues;
-          playRetroSound();
-          alert(`🎉 Winner drawn: ${winner} - Prize: ${web3.utils.fromWei(prize)} ETH!`);
-          loadJackpot();
-        })
-        .on('error', console.error);
-
-      contract.events.WithdrawalMade({ fromBlock: 'latest' })
-        .on('data', event => {
-          const { user, amount } = event.returnValues;
-          if (user.toLowerCase() === accounts[0].toLowerCase()) {
-            alert(`💸 You withdrew ${web3.utils.fromWei(amount)} ETH!`);
-          }
-        })
-        .on('error', console.error);
-    }
-
-    window.addEventListener("load", async () => {
-      if (window.ethereum) {
-        web3 = new Web3(window.ethereum);
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-        contract = new web3.eth.Contract(abi, contractAddress);
-        setupEventListeners();
-        loadJackpot();
-      }
-    });
-</script>
-  <script>
-    const contractAddress = "0x0E75b8B5690Ba71966E6B83861Cfd4C509F52955";
-    const abi = [
-      {"inputs":[{"internalType":"address","name":"_feeWallet","type":"address"},{"internalType":"uint256","name":"_feePercent","type":"uint256"}],"stateMutability":"nonpayable","type":"constructor"},
-      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"DepositMade","type":"event"},
-      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"winner","type":"address"},{"indexed":false,"internalType":"uint256","name":"prize","type":"uint256"}],"name":"WinnerDrawn","type":"event"},
-      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"WithdrawalMade","type":"event"},
-      {"inputs":[],"name":"canDraw","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"deposit","outputs":[],"stateMutability":"payable","type":"function"},
-      {"inputs":[],"name":"drawInterval","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"drawWinner","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[],"name":"feePercent","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"feeWallet","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"getParticipants","outputs":[{"internalType":"address[]","name":"","type":"address[]"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"minDeposit","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"roundStartTime","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"uint256","name":"_newFee","type":"uint256"}],"name":"setFee","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"setMinDeposit","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[{"internalType":"uint256","name":"_seconds","type":"uint256"}],"name":"setDrawInterval","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[{"internalType":"address","name":"_wallet","type":"address"}],"name":"setFeeWallet","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[],"name":"totalPool","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"withdrawIfWinner","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[],"name":"winner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"currentDeposits","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalDeposits","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
-    ];
-  </script>
   <style>
-    .container { max-width: 600px; margin: auto; }
-    .info-box { margin: 1rem 0; padding: 1rem; border: 2px solid #9900cc; border-radius: 10px; background: #fff0ff; }
-    #dashboard { display: none; margin-top: 2rem; }
-    #withdrawSection { display: none; margin-top: 2rem; }
+    body {
+      background: #e0e0e0 url('https://www.transparenttextures.com/patterns/asfalt-dark.png');
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      text-align: center;
+      color: #222;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #fff;
+      border: 3px double #333;
+      box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
+    }
+    h1 {
+      font-size: 3em;
+      color: #9900cc;
+      text-shadow: 2px 2px #00ffff;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 1.2em;
+    }
+    .info, .instructions, .history {
+      font-size: 1.1em;
+      margin-top: 20px;
+      background: #ccffff;
+      padding: 10px;
+      border: 2px dashed #0099cc;
+    }
+    .jackpot, .winners, .current, .user-dashboard {
+      margin-top: 30px;
+      background-color: #fefbd8;
+      padding: 15px;
+      border: 2px solid #ffcc00;
+    }
+    .user-dashboard {
+      display: none;
+    }
+    ul {
+      text-align: left;
+      padding-left: 20px;
+    }
+    .marquee {
+      width: 100%;
+      background: #ffcc00;
+      color: #000;
+      font-weight: bold;
+      font-size: 1.2em;
+      padding: 10px;
+      overflow: hidden;
+      white-space: nowrap;
+      box-sizing: border-box;
+    }
+    .marquee span {
+      display: inline-block;
+      padding-left: 100%;
+      animation: marquee 15s linear infinite;
+    }
+    @keyframes marquee {
+      0%   { transform: translate(0, 0); }
+      100% { transform: translate(-100%, 0); }
+    }
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 30px;
+      border: 3px solid #333;
+      text-align: left;
+      max-width: 600px;
+    }
   </style>
 </head>
-<body style="font-family: Tahoma, sans-serif; text-align: center; background-color: #fefefe; padding: 2rem;">
-  <link rel="icon" href="favicon.ico" type="image/x-icon" />
-  <h1 style="font-size: 2.5rem; color: #9900cc;">🚀 Welcome to ETH Lotto</h1>
-  <p>Connect your wallet to start playing. The more ETH you deposit, the higher your chance to win the weekly jackpot!</p>
-  <button onclick="window.location.href='terms.html'" style="margin: 1rem;">Terms & Conditions</button>
-  <button onclick="window.location.href='https://twitter.com/intent/tweet?text=Join the ETH Lotto! Win the weekly jackpot in crypto!&url=' + encodeURIComponent(window.location.href)" style="margin: 1rem;">📣 Share on Twitter</button>
+<body>
+  <div class="modal" id="termsModal">
+    <div class="modal-content">
+      <h2>Terms & Conditions</h2>
+      <p><strong>Last updated: May 31, 2025</strong></p>
+      <p>By connecting your wallet and participating in ETH Lotto, you agree that:</p>
+      <ul>
+        <li>You are at least 18 years old and not restricted by local laws.</li>
+        <li>All ETH sent is final and non-refundable.</li>
+        <li>Winnings are based on odds proportional to deposits.</li>
+        <li>You understand this is a decentralized game of chance and accept the risks.</li>
+      </ul>
+      <p>Full legal terms: <a href="/terms.html" target="_blank">Read full Terms and Conditions</a></p>
+      <button onclick="acceptTerms()">I Accept</button>
+      <button onclick="window.location.href='https://google.com'">Exit</button>
+    </div>
+  </div>
+
+  <div class="marquee"><span>🚀 Help make crypto history! Let's build the biggest lotto jackpot ever and beat the $2.1 billion record! 💰🔥</span></div>
   <div class="container">
-  <h2>Current Jackpot: <span id="jackpot">Loading...</span> ETH</h2>
-  <p>Total Participants: <span id="participantCount">0</span></p>
-  <p>Next Draw In: <span id="countdown">--:--:--</span></p>
+    <h1>💎 ETH Lotto 💎</h1>
+    <p>Enter the weekly jackpot draw by sending any amount of ETH!</p>
+    <p>The more ETH you send, the better your odds of winning the pot!</p>
+    <div>
+      <label for="amount">Amount (ETH):</label>
+      <input type="number" id="amount" step="0.001">
+      <button onclick="sendETH()">Send ETH</button>
+    </div>
+    <p class="info" id="feeInfo">Minimum deposit: 0.001 ETH.</p>
+    <p id="status"></p>
 
-  <div class="info-box">
-    <label for="ethAmount">Enter ETH amount to deposit:</label><br/>
-    <input type="number" id="ethAmount" step="0.001" placeholder="e.g. 0.01">
-    <button onclick="sendETH()">Send ETH</button>
+    <div class="instructions">
+      <h3>📜 How It Works:</h3>
+      <ul>
+        <li>Connect your MetaMask wallet.</li>
+        <li>Enter the amount of ETH you'd like to deposit above the minimum, then click "Send ETH".</li>
+        <li>Each ETH you deposit increases your odds of winning.</li>
+        <li>At the end of each week, a winner is drawn based on contributions.</li>
+        <li>The winner gets the entire jackpot!</li>
+      </ul>
+    </div>
+
+    <div class="current">
+      <h3>💰 Current Jackpot:</h3>
+      <p><strong id="currentJackpot">Loading...</strong></p>
+    </div>
+
+    <div class="user-dashboard" id="dashboard">
+      <h3>👤 Your Dashboard</h3>
+      <p>Connected Wallet: <span id="userAddress">Not connected</span></p>
+      <p>Your Deposits This Week: <strong><span id="weeklyDeposit">0</span> ETH</strong></p>
+      <p>Your All-Time Total: <strong><span id="totalDeposit">0</span> ETH</strong></p>
+      <p>Your Chance of Winning: <strong><span id="winningChance">0%</span></strong></p>
+      <div id="withdrawSection" style="display:none; margin-top:10px;">
+        <button onclick="withdrawWinnings()">Withdraw Winnings</button>
+      </div>
+    </div>
+
+    <div class="jackpot">
+      <h3>🏆 Largest Jackpot So Far:</h3>
+      <p><strong>23.5 ETH</strong> - Won by <a href="https://sepolia.etherscan.io/address/0xABC...789" target="_blank">0xABC...789</a> in March 2025</p>
+    </div>
+
+    <div class="winners">
+      <h3>🎉 Previous Winners:</h3>
+      <ul>
+        <li><strong>May 2025:</strong> <a href="https://sepolia.etherscan.io/address/0x1A2b...345" target="_blank">0x1A2b...345</a> - 11.2 ETH</li>
+        <li><strong>April 2025:</strong> <a href="https://sepolia.etherscan.io/address/0x9F8e...321" target="_blank">0x9F8e...321</a> - 14.7 ETH</li>
+        <li><strong>March 2025:</strong> <a href="https://sepolia.etherscan.io/address/0xABC...789" target="_blank">0xABC...789</a> - 23.5 ETH</li>
+        <li><strong>February 2025:</strong> <a href="https://sepolia.etherscan.io/address/0xD3f4...123" target="_blank">0xD3f4...123</a> - 9.3 ETH</li>
+      </ul>
+    </div>
   </div>
 
-  <div id="dashboard" class="info-box">
-    <h3>Your Stats</h3>
-    <p>This round: <span id="yourDeposit">0</span> ETH</p>
-    <p>All-time total: <span id="yourTotal">0</span> ETH</p>
-    <p>Your chance: <span id="yourChance">0</span>%</p>
-  </div>
-
-  <div id="withdrawSection">
-    <button onclick="withdraw()">💸 Withdraw Winnings</button>
-  </div>
-</div>
-
-<script>
-  let contract;
-  let web3;
-
-  async function loadJackpot() {
-    const pool = await contract.methods.totalPool().call();
-    const participants = await contract.methods.getParticipants().call();
-    document.getElementById("jackpot").innerText = web3.utils.fromWei(pool);
-    document.getElementById("participantCount").innerText = participants.length;
-    loadUserStats();
-    loadCountdown();
-  }
-
-  async function sendETH() {
-    const accounts = await web3.eth.getAccounts();
-    const value = document.getElementById("ethAmount").value;
-    if (!value || parseFloat(value) <= 0) return alert("Enter a valid ETH amount");
-    const wei = web3.utils.toWei(value, "ether");
-    contract.methods.deposit().send({ from: accounts[0], value: wei });
-  }
-
-  async function withdraw() {
-    const accounts = await web3.eth.getAccounts();
-    contract.methods.withdrawIfWinner().send({ from: accounts[0] });
-  }
-
-  async function loadUserStats() {
-    const accounts = await web3.eth.getAccounts();
-    const addr = accounts[0];
-    const thisRound = await contract.methods.currentDeposits(addr).call();
-    const allTime = await contract.methods.totalDeposits(addr).call();
-    const total = await contract.methods.totalPool().call();
-    const chance = total > 0 ? ((thisRound / total) * 100).toFixed(2) : 0;
-
-    document.getElementById("dashboard").style.display = "block";
-    document.getElementById("yourDeposit").innerText = web3.utils.fromWei(thisRound);
-    document.getElementById("yourTotal").innerText = web3.utils.fromWei(allTime);
-    document.getElementById("yourChance").innerText = chance;
-
-    const winner = await contract.methods.winner().call();
-    document.getElementById("withdrawSection").style.display = (addr.toLowerCase() === winner.toLowerCase()) ? "block" : "none";
-  }
-
-  async function loadCountdown() {
-    const start = await contract.methods.roundStartTime().call();
-    const interval = await contract.methods.drawInterval().call();
-    const end = parseInt(start) + parseInt(interval);
-
-    function updateClock() {
-      const now = Math.floor(Date.now() / 1000);
-      let diff = end - now;
-      if (diff < 0) diff = 0;
-      const h = String(Math.floor(diff / 3600)).padStart(2, '0');
-      const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-      const s = String(diff % 60).padStart(2, '0');
-      document.getElementById("countdown").innerText = `${h}:${m}:${s}`;
+  <script>
+    async function checkWalletAndTerms() {
+      if (!window.ethereum) return;
+      const accounts = await ethereum.request({ method: 'eth_accounts' });
+      if (accounts.length > 0 && !localStorage.getItem("ethlotto_terms_accepted")) {
+        document.getElementById("termsModal").style.display = "flex";
+      }
     }
 
-    updateClock();
-    setInterval(updateClock, 1000);
-  }
+    window.onload = checkWalletAndTerms;
 
-  function playRetroSound() {
-    const audio = new Audio("https://www.myinstants.com/media/sounds/coin.mp3");
-    audio.play();
-  }
+    function acceptTerms() {
+      localStorage.setItem("ethlotto_terms_accepted", "true");
+      document.getElementById("termsModal").style.display = "none";
+    }
+  </script>
+  <footer style="margin: 30px 0; font-size: 0.9em; color: #555;">
+    <p>
+      <a href="/terms.html" target="_blank">Terms & Conditions</a> |
+      <a href="https://twitter.com/ethlotto" target="_blank">Twitter</a>
+    </p>
+  </footer>
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<script>
+let web3;
+let contract;
+const contractAddress = "0x0E75b8B5690Ba71966E6B83861Cfd4C509F52955";
+const contractABI = [[
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_feeWallet",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_feePercent",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "DepositMade",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "winner",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "prize",
+				"type": "uint256"
+			}
+		],
+		"name": "WinnerDrawn",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "WithdrawalMade",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "canDraw",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "currentDeposits",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "deposit",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "drawInterval",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "drawWinner",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "feePercent",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "feeWallet",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getParticipants",
+		"outputs": [
+			{
+				"internalType": "address[]",
+				"name": "",
+				"type": "address[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "minDeposit",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "participants",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "roundStartTime",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_seconds",
+				"type": "uint256"
+			}
+		],
+		"name": "setDrawInterval",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_newFee",
+				"type": "uint256"
+			}
+		],
+		"name": "setFee",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_wallet",
+				"type": "address"
+			}
+		],
+		"name": "setFeeWallet",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_amount",
+				"type": "uint256"
+			}
+		],
+		"name": "setMinDeposit",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "totalDeposits",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "totalPool",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "winner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "withdrawIfWinner",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"stateMutability": "payable",
+		"type": "receive"
+	}
+]];
 
-  function showDepositEffect() {
-    const sparkle = document.createElement("div");
-    sparkle.innerText = "✨";
-    sparkle.style.position = "absolute";
-    sparkle.style.top = Math.random() * window.innerHeight + "px";
-    sparkle.style.left = Math.random() * window.innerWidth + "px";
-    sparkle.style.fontSize = "2rem";
-    sparkle.style.animation = "fadeOut 2s ease forwards";
-    document.body.appendChild(sparkle);
-    setTimeout(() => sparkle.remove(), 2000);
+async function connectWallet() {
+  if (window.ethereum) {
+    web3 = new Web3(window.ethereum);
+    await ethereum.request({ method: 'eth_requestAccounts' });
+    contract = new web3.eth.Contract(contractABI, contractAddress);
+    updateDashboard();
+  } else {
+    alert('Please install MetaMask to use this feature.');
   }
+}
+
+async function sendETH() {
+  const accounts = await web3.eth.getAccounts();
+  const value = document.getElementById("amount").value;
+  if (!value || parseFloat(value) <= 0.0009) return alert("Minimum is 0.001 ETH");
+  const wei = web3.utils.toWei(value, "ether");
+  try {
+    await contract.methods.deposit().send({ from: accounts[0], value: wei });
+    playSound();
+    showSparkle();
+    updateDashboard();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function playSound() {
+  const audio = new Audio("https://www.myinstants.com/media/sounds/coin.mp3");
+  audio.play();
+}
+
+function showSparkle() {
+  const sparkle = document.createElement("div");
+  sparkle.innerText = "✨";
+  sparkle.style.position = "absolute";
+  sparkle.style.top = Math.random() * window.innerHeight + "px";
+  sparkle.style.left = Math.random() * window.innerWidth + "px";
+  sparkle.style.fontSize = "2rem";
+  sparkle.style.animation = "fadeOut 2s ease forwards";
+  document.body.appendChild(sparkle);
+  setTimeout(() => sparkle.remove(), 2000);
+}
+
+async function updateDashboard() {
+  const accounts = await web3.eth.getAccounts();
+  const user = accounts[0];
+  document.getElementById("userAddress").innerText = user;
+  document.getElementById("dashboard").style.display = "block";
+  const userDeposit = await contract.methods.currentDeposits(user).call();
+  const totalDeposit = await contract.methods.totalDeposits(user).call();
+  const totalPool = await contract.methods.totalPool().call();
+  const winner = await contract.methods.winner().call();
+
+  document.getElementById("weeklyDeposit").innerText = web3.utils.fromWei(userDeposit, "ether");
+  document.getElementById("totalDeposit").innerText = web3.utils.fromWei(totalDeposit, "ether");
+  document.getElementById("winningChance").innerText = totalPool > 0 ? ((userDeposit / totalPool) * 100).toFixed(2) + "%" : "0%";
+  document.getElementById("withdrawSection").style.display = user.toLowerCase() === winner.toLowerCase() ? "block" : "none"; // Replace true with check
+}
+function updateCountdown() {
+  contract.methods.roundStartTime().call().then(startTime => {
+    contract.methods.drawInterval().call().then(interval => {
+      const endTime = parseInt(startTime) + parseInt(interval);
+      const now = Math.floor(Date.now() / 1000);
+      let remaining = endTime - now;
+      if (remaining < 0) remaining = 0;
+      const hrs = String(Math.floor(remaining / 3600)).padStart(2, '0');
+      const mins = String(Math.floor((remaining % 3600) / 60)).padStart(2, '0');
+      const secs = String(remaining % 60).padStart(2, '0');
+      document.getElementById("countdown")?.innerText = `${hrs}:${mins}:${secs}`;
+    });
+  });
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
 </script>
+</body>
+</html>
